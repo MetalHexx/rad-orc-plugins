@@ -264,7 +264,6 @@ async function runInstall(opts) {
       fs6.rmSync(paths.ui, { recursive: true, force: true });
       fs6.cpSync(pluginUiDir, paths.ui, { recursive: true });
     }
-    fs6.rmSync(path7.join(opts.pluginRoot, "_install-source"), { recursive: true, force: true });
     ij.harnesses[INSTALL_KEY] = buildCopilotVscodePluginEntry(deliveringVersion);
     writeInstallJson(paths.installJson, ij);
     const action = installedVersionBefore && sentinelPresent ? "upgrade-complete" : "fresh-install";
@@ -273,6 +272,14 @@ async function runInstall(opts) {
   } catch (err) {
     appendInstallLog(paths.installLog, { action: "error", deliveringVersion, installedVersionBefore });
     throw err;
+  } finally {
+    try {
+      fs6.rmSync(path7.join(opts.pluginRoot, "_install-source"), { recursive: true, force: true });
+      fs6.rmSync(path7.join(opts.pluginRoot, "templates"), { recursive: true, force: true });
+      fs6.rmSync(path7.join(opts.pluginRoot, "orchestration.yml"), { force: true });
+      fs6.rmSync(path7.join(opts.pluginRoot, "ui"), { recursive: true, force: true });
+    } catch {
+    }
   }
 }
 
