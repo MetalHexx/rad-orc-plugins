@@ -1,4 +1,4 @@
-# rad-orc-plugins
+# rad-orc-marketplace
 
 Public artifact channel for the `rad-orc` plugin family — Claude Code, GitHub Copilot CLI, and GitHub Copilot in VS Code. Source of truth for the plugins themselves lives in the parent repo: [MetalHexx/RadOrchestration](https://github.com/MetalHexx/RadOrchestration).
 
@@ -6,20 +6,20 @@ Public artifact channel for the `rad-orc` plugin family — Claude Code, GitHub 
 
 **Claude Code**
 ```
-/plugin marketplace add MetalHexx/rad-orc-plugins
-/plugin install claude-plugin@rad-orc
+/plugin marketplace add MetalHexx/rad-orc-marketplace
+/plugin install rad-orc@rad-orc-marketplace
 ```
 
 **GitHub Copilot CLI**
 ```
-/plugin marketplace add MetalHexx/rad-orc-plugins
-/plugin install copilot-cli-plugin@rad-orc
+/plugin marketplace add MetalHexx/rad-orc-marketplace
+/plugin install rad-orc@rad-orc-marketplace
 ```
 
 **GitHub Copilot in VS Code**
 ```
-/plugin marketplace add MetalHexx/rad-orc-plugins
-/plugin install copilot-vscode-plugin@rad-orc
+/plugin marketplace add MetalHexx/rad-orc-marketplace
+/plugin install rad-orc-vscode@rad-orc-marketplace
 ```
 
 ## Issues and source
