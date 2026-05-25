@@ -1,0 +1,21 @@
+{
+  "name": "@rad-orchestration/claude-plugin",
+  "version": "1.0.0-alpha.9",
+  "description": "Source-side wrapper for the Claude marketplace plugin installer. Never published — npm pack is run against output/ after build.",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    ".claude-plugin/",
+    "agents/",
+    "skills/",
+    "hooks/",
+    "lib/",
+    "manifests/",
+    "orchestration.yml",
+    "templates/",
+    "ui/"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

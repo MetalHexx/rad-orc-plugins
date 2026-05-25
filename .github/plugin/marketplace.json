@@ -8,7 +8,7 @@
         "source": "github",
         "repo": "MetalHexx/rad-orc-plugins",
         "path": "copilot-cli-plugin",
-        "ref": "dryrun-2026-05-24"
+        "ref": "main"
       },
       "description": "Rad Orchestration plugin for GitHub Copilot CLI."
     },
@@ -18,7 +18,7 @@
         "source": "github",
         "repo": "MetalHexx/rad-orc-plugins",
         "path": "copilot-vscode-plugin",
-        "ref": "dryrun-2026-05-24"
+        "ref": "main"
       },
       "description": "Rad Orchestration plugin for GitHub Copilot in VS Code."
     }
