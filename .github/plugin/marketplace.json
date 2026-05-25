@@ -5,20 +5,20 @@
     {
       "name": "copilot-cli-plugin",
       "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/MetalHexx/rad-orc-plugins.git",
-        "ref": "v0.0.0-bootstrap",
-        "path": "copilot-cli-plugin"
+        "source": "github",
+        "repo": "MetalHexx/rad-orc-plugins",
+        "path": "copilot-cli-plugin",
+        "ref": "dryrun-2026-05-24"
       },
       "description": "Rad Orchestration plugin for GitHub Copilot CLI."
     },
     {
       "name": "copilot-vscode-plugin",
       "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/MetalHexx/rad-orc-plugins.git",
-        "ref": "v0.0.0-bootstrap",
-        "path": "copilot-vscode-plugin"
+        "source": "github",
+        "repo": "MetalHexx/rad-orc-plugins",
+        "path": "copilot-vscode-plugin",
+        "ref": "dryrun-2026-05-24"
       },
       "description": "Rad Orchestration plugin for GitHub Copilot in VS Code."
     }
