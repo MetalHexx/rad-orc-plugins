@@ -5,8 +5,8 @@
     {
       "name": "claude-plugin",
       "source": {
-        "source": "github",
-        "repo": "MetalHexx/rad-orc-plugins",
+        "source": "git-subdir",
+        "url": "https://github.com/MetalHexx/rad-orc-plugins.git",
         "ref": "v0.0.0-bootstrap",
         "path": "claude-plugin"
       },
