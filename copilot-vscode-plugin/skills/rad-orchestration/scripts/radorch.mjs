@@ -10295,10 +10295,11 @@ var init_scaffold = __esm({
 });
 
 // cli/src/lib/pipeline-engine/context-enrichment.ts
-function buildRepositorySkillsBlock() {
+function buildRepositorySkillsBlock(state) {
+  const repoRoot = state.pipeline.source_control?.worktree_path ?? process.cwd();
   let arr;
   try {
-    arr = buildSkillManifest({ repoRoot: process.cwd() });
+    arr = buildSkillManifest({ repoRoot });
   } catch (err) {
     console.warn(
       `context-enrichment: buildSkillManifest failed (${err.message}); emitting empty repository_skills_block`
@@ -10357,7 +10358,7 @@ function resolveActiveTaskIndex(state, phaseIndex) {
 function enrichActionContext(input) {
   const { action, walkerContext, state } = input;
   if (action in PLANNING_SPAWN_STEPS) {
-    const repository_skills_block = buildRepositorySkillsBlock();
+    const repository_skills_block = buildRepositorySkillsBlock(state);
     const base = {
       ...walkerContext,
       step: PLANNING_SPAWN_STEPS[action],
@@ -11738,6 +11739,20 @@ function walkNodes(nodeDefs, nodes, config, state, readDocument4, currentIterati
           continue;
         }
         return iterResult;
+      }
+      if (nodeDef.kind === "step") {
+        const stepDef = nodeDef;
+        return {
+          action: stepDef.action,
+          context: stepDef.context ?? {}
+        };
+      }
+      if (nodeDef.kind === "gate") {
+        const gateDef = nodeDef;
+        return {
+          action: gateDef.action_if_needed,
+          context: {}
+        };
       }
       return null;
     }
