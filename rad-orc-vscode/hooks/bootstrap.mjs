@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 // harness-installers/copilot-vscode-plugin/hooks/bootstrap.mjs
-import fs9 from "node:fs";
+import fs10 from "node:fs";
 import os3 from "node:os";
 import path9 from "node:path";
 import { fileURLToPath } from "node:url";
 
 // harness-installers/copilot-vscode-plugin/lib/install/run-install.js
-import fs7 from "node:fs";
+import fs8 from "node:fs";
 import path7 from "node:path";
 
 // harness-installers/copilot-vscode-plugin/node_modules/tar/dist/esm/index.min.js
@@ -2940,7 +2940,8 @@ function userDataPaths(opts = {}) {
     ui: path.join(root, "ui"),
     projects: path.join(root, "projects"),
     logs: path.join(root, "logs"),
-    installLog: path.join(root, "logs", "install.log")
+    installLog: path.join(root, "logs", "install.log"),
+    uiPidFile: path.join(root, "runtime", "ui.pid")
   };
 }
 
@@ -2979,6 +2980,10 @@ function buildCopilotVscodePluginEntry(version) {
     installed_at: (/* @__PURE__ */ new Date()).toISOString(),
     last_writer_version: version
   };
+}
+function isEntryCurrent(entry, version) {
+  if (!entry || typeof entry !== "object") return false;
+  return entry.version === version && entry.channel === "copilot-vscode-plugin" && typeof entry.installed_at === "string" && entry.last_writer_version === version;
 }
 
 // harness-installers/copilot-vscode-plugin/lib/install/catalog.js
@@ -3074,7 +3079,99 @@ function appendInstallLog(file, { action, deliveringVersion, installedVersionBef
   }
 }
 
+// harness-installers/copilot-vscode-plugin/lib/install/ui-stop.js
+import fs7 from "node:fs";
+var POLL_INTERVAL_MS = 200;
+var POLL_TIMEOUT_MS = 5e3;
+function defaultIsPidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function defaultKill(pid, signal) {
+  process.kill(pid, signal);
+}
+function defaultSleep(ms2) {
+  return new Promise((r) => setTimeout(r, ms2));
+}
+async function detectAndStopUi(opts = {}) {
+  const isAlive = opts._isPidAlive ?? defaultIsPidAlive;
+  const kill = opts._kill ?? defaultKill;
+  const sleep = opts._sleep ?? defaultSleep;
+  const now = opts._now ?? Date.now;
+  const paths = userDataPaths({ radHome: opts.radHome });
+  const pidFile = paths.uiPidFile;
+  if (!fs7.existsSync(pidFile)) {
+    return { wasRunning: false, stopped: false, status: null, reason: null };
+  }
+  let entry;
+  try {
+    entry = JSON.parse(fs7.readFileSync(pidFile, "utf8"));
+  } catch {
+    return { wasRunning: false, stopped: false, status: null, reason: null };
+  }
+  if (!entry || typeof entry.pid !== "number") {
+    return { wasRunning: false, stopped: false, status: null, reason: null };
+  }
+  if (!isAlive(entry.pid)) {
+    try {
+      fs7.rmSync(pidFile, { force: true });
+    } catch {
+    }
+    return { wasRunning: false, stopped: false, status: null, reason: null };
+  }
+  const status = {
+    pid: entry.pid,
+    port: typeof entry.port === "number" ? entry.port : -1,
+    url: typeof entry.port === "number" ? `http://localhost:${entry.port}` : "<unknown port>"
+  };
+  try {
+    kill(entry.pid, "SIGTERM");
+  } catch (err) {
+    return { wasRunning: true, stopped: false, status, reason: `SIGTERM failed: ${err.message}` };
+  }
+  const deadline = now() + POLL_TIMEOUT_MS;
+  while (now() < deadline) {
+    await sleep(POLL_INTERVAL_MS);
+    if (!isAlive(entry.pid)) {
+      try {
+        fs7.rmSync(pidFile, { force: true });
+      } catch {
+      }
+      return { wasRunning: true, stopped: true, status, reason: null };
+    }
+  }
+  return {
+    wasRunning: true,
+    stopped: false,
+    status,
+    reason: `PID ${entry.pid} still alive ${POLL_TIMEOUT_MS}ms after SIGTERM`
+  };
+}
+function formatUiLockMessage(status, reason) {
+  return `dashboard UI is running and could not be stopped (PID ${status.pid} at ${status.url}). ${reason}. Stop it manually and re-submit a prompt to retry the install.`;
+}
+
 // harness-installers/copilot-vscode-plugin/lib/install/run-install.js
+var UiLockError = class extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = "UiLockError";
+    this.uiStatus = status;
+  }
+};
+function cleanupStagingDir(pluginRoot2) {
+  try {
+    fs8.rmSync(path7.join(pluginRoot2, "_install-source"), { recursive: true, force: true });
+    fs8.rmSync(path7.join(pluginRoot2, "templates"), { recursive: true, force: true });
+    fs8.rmSync(path7.join(pluginRoot2, "orchestration.yml"), { force: true });
+    fs8.rmSync(path7.join(pluginRoot2, "ui"), { recursive: true, force: true });
+  } catch {
+  }
+}
 var INSTALL_KEY = "copilot-vscode-plugin";
 var COEXISTENCE_PARTNERS = ["copilot-vscode", "copilot-cli", "copilot-cli-plugin"];
 function cmpSemver(a, b2) {
@@ -3115,12 +3212,12 @@ function cmpSemver(a, b2) {
 }
 function readDeliveringVersion(pluginRoot2) {
   const pluginJsonPath = path7.join(pluginRoot2, "plugin.json");
-  if (fs7.existsSync(pluginJsonPath)) {
-    const pj = JSON.parse(fs7.readFileSync(pluginJsonPath, "utf8"));
+  if (fs8.existsSync(pluginJsonPath)) {
+    const pj = JSON.parse(fs8.readFileSync(pluginJsonPath, "utf8"));
     if (pj.version) return pj.version;
   }
   const pkgJsonPath = path7.join(pluginRoot2, "package.json");
-  const pkg = JSON.parse(fs7.readFileSync(pkgJsonPath, "utf8"));
+  const pkg = JSON.parse(fs8.readFileSync(pkgJsonPath, "utf8"));
   return pkg.version;
 }
 function emitCoexistenceWarning(stderr, partnersPresent) {
@@ -3143,30 +3240,49 @@ ${extra}`
 }
 async function runInstall(opts) {
   const stderr = opts.stderr ?? ((msg) => process.stderr.write(msg));
+  const detect = opts._detectAndStopUi ?? detectAndStopUi;
   const paths = userDataPaths({ radHome: opts.radHome });
   let deliveringVersion = null;
   let installedVersionBefore = null;
+  let uiStopped = false;
   try {
     deliveringVersion = readDeliveringVersion(opts.pluginRoot);
     const sentinel = path7.join(opts.pluginRoot, "skills/rad-orchestration/scripts/radorch.mjs");
-    fs7.mkdirSync(paths.projects, { recursive: true });
-    fs7.mkdirSync(paths.logs, { recursive: true });
+    fs8.mkdirSync(paths.projects, { recursive: true });
+    fs8.mkdirSync(paths.logs, { recursive: true });
     const ij = loadRegistry(paths.installJson);
     const prior = ij.harnesses[INSTALL_KEY];
     installedVersionBefore = prior?.version ?? null;
-    const sentinelPresent = fs7.existsSync(sentinel);
+    const sentinelPresent = fs8.existsSync(sentinel);
     const partnersPresent = COEXISTENCE_PARTNERS.filter((k2) => ij.harnesses[k2]);
     if (partnersPresent.length > 0) emitCoexistenceWarning(stderr, partnersPresent);
     if (prior && installedVersionBefore === deliveringVersion && sentinelPresent && !opts.force) {
+      let installJsonUpserted = false;
+      if (!isEntryCurrent(prior, deliveringVersion)) {
+        ij.harnesses[INSTALL_KEY] = buildCopilotVscodePluginEntry(deliveringVersion);
+        writeInstallJson(paths.installJson, ij);
+        installJsonUpserted = true;
+      }
       appendInstallLog(paths.installLog, { action: "noop", deliveringVersion, installedVersionBefore });
-      return { action: "noop", deliveringVersion, installedVersionBefore };
+      return { action: "noop", deliveringVersion, installedVersionBefore, uiStopped: false, installJsonUpserted };
     }
     if (prior && cmpSemver(deliveringVersion, installedVersionBefore) < 0 && !opts.force) {
       stderr(`[install] Delivering v${deliveringVersion} is older than installed v${installedVersionBefore}; downgrade accepted as no-op.
 `);
+      let installJsonUpserted = false;
+      if (!isEntryCurrent(prior, installedVersionBefore)) {
+        ij.harnesses[INSTALL_KEY] = buildCopilotVscodePluginEntry(installedVersionBefore);
+        writeInstallJson(paths.installJson, ij);
+        installJsonUpserted = true;
+      }
       appendInstallLog(paths.installLog, { action: "downgrade-noop", deliveringVersion, installedVersionBefore });
-      return { action: "downgrade-noop", deliveringVersion, installedVersionBefore };
+      return { action: "downgrade-noop", deliveringVersion, installedVersionBefore, uiStopped: false, installJsonUpserted };
     }
+    const ui2 = await detect({ radHome: opts.radHome });
+    if (ui2.wasRunning && !ui2.stopped) {
+      throw new UiLockError(formatUiLockMessage(ui2.status, ui2.reason), ui2.status);
+    }
+    uiStopped = ui2.stopped;
     if (prior && installedVersionBefore !== deliveringVersion) {
       try {
         const priorManifest = loadManifest(opts.pluginRoot, installedVersionBefore);
@@ -3177,37 +3293,30 @@ async function runInstall(opts) {
     const manifest = loadManifest(opts.pluginRoot, deliveringVersion);
     installManifestFiles(manifest, opts.pluginRoot, { radHome: opts.radHome });
     const pluginUiTarball = path7.join(opts.pluginRoot, "_install-source/ui.tgz");
-    if (fs7.existsSync(pluginUiTarball)) {
-      fs7.rmSync(paths.ui, { recursive: true, force: true });
-      fs7.mkdirSync(paths.ui, { recursive: true });
+    if (fs8.existsSync(pluginUiTarball)) {
+      fs8.rmSync(paths.ui, { recursive: true, force: true });
+      fs8.mkdirSync(paths.ui, { recursive: true });
       await fo({ file: pluginUiTarball, cwd: paths.ui });
     }
     ij.harnesses[INSTALL_KEY] = buildCopilotVscodePluginEntry(deliveringVersion);
     writeInstallJson(paths.installJson, ij);
     const action = installedVersionBefore && sentinelPresent ? "upgrade-complete" : "fresh-install";
     appendInstallLog(paths.installLog, { action, deliveringVersion, installedVersionBefore });
-    return { action, deliveringVersion, installedVersionBefore };
+    cleanupStagingDir(opts.pluginRoot);
+    return { action, deliveringVersion, installedVersionBefore, uiStopped, installJsonUpserted: true };
   } catch (err) {
     appendInstallLog(paths.installLog, { action: "error", deliveringVersion, installedVersionBefore });
     throw err;
-  } finally {
-    try {
-      fs7.rmSync(path7.join(opts.pluginRoot, "_install-source"), { recursive: true, force: true });
-      fs7.rmSync(path7.join(opts.pluginRoot, "templates"), { recursive: true, force: true });
-      fs7.rmSync(path7.join(opts.pluginRoot, "orchestration.yml"), { force: true });
-      fs7.rmSync(path7.join(opts.pluginRoot, "ui"), { recursive: true, force: true });
-    } catch {
-    }
   }
 }
 
 // harness-installers/copilot-vscode-plugin/lib/install/bake-paths.js
-import fs8 from "node:fs";
+import fs9 from "node:fs";
 import path8 from "node:path";
 var TOKEN = "${COPILOT_VSCODE_PLUGIN_ROOT}";
 function walkMarkdown(dir, out) {
-  if (!fs8.existsSync(dir)) return;
-  for (const entry of fs8.readdirSync(dir, { withFileTypes: true })) {
+  if (!fs9.existsSync(dir)) return;
+  for (const entry of fs9.readdirSync(dir, { withFileTypes: true })) {
     const full = path8.join(dir, entry.name);
     if (entry.isDirectory()) walkMarkdown(full, out);
     else if (entry.isFile() && entry.name.endsWith(".md")) out.push(full);
@@ -3215,8 +3324,8 @@ function walkMarkdown(dir, out) {
 }
 function atomicWrite(file, content) {
   const tmp = `${file}.tmp-${process.pid}-${Date.now()}`;
-  fs8.writeFileSync(tmp, content, "utf8");
-  fs8.renameSync(tmp, file);
+  fs9.writeFileSync(tmp, content, "utf8");
+  fs9.renameSync(tmp, file);
 }
 function bakeAbsolutePaths(pluginRoot2) {
   const skillsDir = path8.join(pluginRoot2, "skills");
@@ -3225,7 +3334,7 @@ function bakeAbsolutePaths(pluginRoot2) {
   const replacement = pluginRoot2.replaceAll("\\", "/");
   let baked = 0;
   for (const file of files) {
-    const before = fs8.readFileSync(file, "utf8");
+    const before = fs9.readFileSync(file, "utf8");
     if (!before.includes(TOKEN)) continue;
     const after = before.split(TOKEN).join(replacement);
     atomicWrite(file, after);
@@ -3235,8 +3344,12 @@ function bakeAbsolutePaths(pluginRoot2) {
 }
 
 // harness-installers/copilot-vscode-plugin/hooks/bootstrap.mjs
-function log(msg) {
+function logErr(msg) {
   process.stderr.write(`[rad-orchestration:copilot-vscode-bootstrap] ${msg}
+`);
+}
+function logOut(msg) {
+  process.stdout.write(`rad-orchestration: ${msg}
 `);
 }
 var scriptDir = path9.dirname(fileURLToPath(import.meta.url));
@@ -3247,35 +3360,49 @@ if (!process.env.COPILOT_VSCODE_PLUGIN_ROOT) {
 function selfUninstall(root) {
   const hooksJson = path9.join(root, "hooks", "hooks.json");
   try {
-    const manifest = JSON.parse(fs9.readFileSync(hooksJson, "utf8"));
+    const manifest = JSON.parse(fs10.readFileSync(hooksJson, "utf8"));
     if (manifest.hooks?.UserPromptSubmit) {
       delete manifest.hooks.UserPromptSubmit;
       const tmp = `${hooksJson}.tmp-${process.pid}-${Date.now()}`;
-      fs9.writeFileSync(tmp, JSON.stringify(manifest, null, 2) + "\n", "utf8");
-      fs9.renameSync(tmp, hooksJson);
+      fs10.writeFileSync(tmp, JSON.stringify(manifest, null, 2) + "\n", "utf8");
+      fs10.renameSync(tmp, hooksJson);
     }
   } catch (err) {
-    log(`hooks.json self-uninstall failed (non-fatal): ${err.message}`);
+    logErr(`hooks.json self-uninstall failed (non-fatal): ${err.message}`);
   }
 }
 function cleanupLegacyMarker(radHome) {
   try {
-    fs9.unlinkSync(path9.join(radHome, ".copilot-vscode-plugin-bootstrap.json"));
+    fs10.unlinkSync(path9.join(radHome, ".copilot-vscode-plugin-bootstrap.json"));
   } catch {
   }
+}
+function formatSuccessLine(result) {
+  const base = `${result.action} v${result.deliveringVersion}`;
+  const fromClause = result.installedVersionBefore && result.installedVersionBefore !== result.deliveringVersion ? ` (from v${result.installedVersionBefore})` : "";
+  const uiSuffix = result.uiStopped ? " The dashboard UI was stopped to apply this update \u2014 restart it with /rad-ui-start." : "";
+  const upsertSuffix = result.installJsonUpserted && (result.action === "noop" || result.action === "downgrade-noop") ? " (install.json entry refreshed)" : "";
+  return `${base}${fromClause}${upsertSuffix}.${uiSuffix}`;
 }
 async function main() {
   const radHome = process.env.RAD_HOME ?? path9.join(os3.homedir(), ".radorc");
   try {
     const result = await runInstall({ pluginRoot: process.env.COPILOT_VSCODE_PLUGIN_ROOT, radHome });
-    log(`install action=${result.action}`);
+    logErr(`install action=${result.action}`);
     const bake = bakeAbsolutePaths(process.env.COPILOT_VSCODE_PLUGIN_ROOT);
-    log(`bake baked=${bake.baked} scanned=${bake.scanned}`);
+    logErr(`bake baked=${bake.baked} scanned=${bake.scanned}`);
+    logOut(formatSuccessLine(result));
     selfUninstall(process.env.COPILOT_VSCODE_PLUGIN_ROOT);
     cleanupLegacyMarker(radHome);
     return 0;
   } catch (err) {
-    log(`install failed (hooks.json left intact for retry): ${err.message}`);
+    if (err instanceof UiLockError) {
+      logErr(`install aborted: ${err.message}`);
+      logOut(`install aborted \u2014 ${err.message}`);
+    } else {
+      logErr(`install failed (hooks.json left intact for retry): ${err.message}`);
+      logOut(`install failed \u2014 ${err.message}. The hook will retry on your next prompt.`);
+    }
     return 1;
   }
 }
