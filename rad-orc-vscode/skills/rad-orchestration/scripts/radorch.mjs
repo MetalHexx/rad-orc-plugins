@@ -6415,7 +6415,7 @@ var init_exit_codes = __esm({
 import os2 from "node:os";
 import path3 from "node:path";
 function userDataPaths() {
-  const root = path3.join(os2.homedir(), ".radorch");
+  const root = path3.join(os2.homedir(), ".radorc");
   return {
     root,
     installJson: path3.join(root, "install.json"),
@@ -6429,7 +6429,7 @@ function userDataPaths() {
   };
 }
 function resolveInstallRoot() {
-  return path3.join(os2.homedir(), ".radorch");
+  return path3.join(os2.homedir(), ".radorc");
 }
 function installPaths(root) {
   const join6 = path3.join;
@@ -19827,7 +19827,7 @@ var init_engine = __esm({
     init_constants();
     init_scaffold();
     init_validator();
-    PROJECTS_BASE_PATH = path17.join(os6.homedir(), ".radorch", "projects");
+    PROJECTS_BASE_PATH = path17.join(os6.homedir(), ".radorc", "projects");
   }
 });
 
@@ -19961,11 +19961,11 @@ import path19 from "node:path";
 import { fileURLToPath } from "node:url";
 function resolvePathContext() {
   const scriptsDir = path19.dirname(fileURLToPath(import.meta.url));
-  const templatesDir = process.env["RADORCH_TEMPLATES_DIR"] ?? path19.join(os7.homedir(), ".radorch", "templates");
+  const templatesDir = process.env["RADORCH_TEMPLATES_DIR"] ?? path19.join(os7.homedir(), ".radorc", "templates");
   return { scriptsDir, templatesDir };
 }
 function resolveDiscoveredConfigPath() {
-  return path19.join(os7.homedir(), ".radorch", "orchestration.yml");
+  return path19.join(os7.homedir(), ".radorc", "orchestration.yml");
 }
 var init_path_context = __esm({
   "cli/src/lib/pipeline-engine/path-context.ts"() {
@@ -20120,7 +20120,7 @@ import os3 from "node:os";
 import path5 from "node:path";
 function scanUserLevelHarnesses() {
   const home = os3.homedir();
-  const installJson = path5.join(home, ".radorch", "install.json");
+  const installJson = path5.join(home, ".radorc", "install.json");
   const reports = [];
   let registry;
   if (fs4.existsSync(installJson)) {
@@ -21054,8 +21054,8 @@ function projectContext(opts = {}) {
   }
   const platformMap = { win32: "windows", darwin: "mac" };
   const platform = platformMap[process.platform] ?? "linux";
-  const projectsBasePath = path9.join(os4.homedir(), ".radorch", "projects");
-  const configPath = path9.join(os4.homedir(), ".radorch", "orchestration.yml");
+  const projectsBasePath = path9.join(os4.homedir(), ".radorc", "projects");
+  const configPath = path9.join(os4.homedir(), ".radorc", "orchestration.yml");
   let configAutoCommit = "ask";
   let configAutoPr = "ask";
   if (fs7.existsSync(configPath)) {
@@ -21183,7 +21183,7 @@ var projectFindCommand = defineCommand({
   name: "project-find",
   description: "Find execution-tier projects under the projects base path",
   args: {
-    "projects-base-path": { description: "Absolute path to the projects base directory (typically ~/.radorch/projects)", required: true },
+    "projects-base-path": { description: "Absolute path to the projects base directory (typically ~/.radorc/projects)", required: true },
     "repo-root": { description: "Absolute path to the repository root used to enumerate active git worktrees", required: true },
     "project-name": { description: "Optional single-project lookup; when supplied the tier filter is bypassed" }
   },
@@ -21366,7 +21366,7 @@ function worktreeLaunch(opts) {
   const platform = opts.platform ?? process.platform;
   const spawn2 = opts.spawn ?? defaultSpawn;
   const repaired = repairMsysPrompt(opts.prompt);
-  const addDir = path12.join(os5.homedir(), ".radorch", "projects");
+  const addDir = path12.join(os5.homedir(), ".radorc", "projects");
   let agentArgs = [];
   if (opts.agent === "claude") {
     agentArgs = buildClaudeArgs(repaired ?? "", opts.permissionMode ?? "auto", addDir);
@@ -22068,7 +22068,7 @@ var pipelineSignalCommand = defineCommand({
     template: { description: "Pipeline template id (extra-high | high | medium | low) for the start event", type: "string" },
     step: { description: "Internal step identifier carried by *_started events from the v5 DAG walker", type: "string" },
     "parse-error": { description: "JSON object { line, expected, found, message } carried on explosion_failed", type: "string" },
-    config: { description: "Override path to orchestration.yml; default ~/.radorch/orchestration.yml", type: "string" }
+    config: { description: "Override path to orchestration.yml; default ~/.radorc/orchestration.yml", type: "string" }
   },
   handler: async ({ args, flags }) => {
     const event = args.event;
@@ -22118,11 +22118,11 @@ var pipelineSignalCommand = defineCommand({
 init_paths();
 var WHERE_NAMES = {
   projects: {
-    description: "Global projects folder (~/.radorch/projects).",
+    description: "Global projects folder (~/.radorc/projects).",
     resolve: () => installPaths(resolveInstallRoot()).projectsDir
   },
   root: {
-    description: "Radorch install root (~/.radorch).",
+    description: "Radorch install root (~/.radorc).",
     resolve: () => installPaths(resolveInstallRoot()).root
   },
   "install-json": {

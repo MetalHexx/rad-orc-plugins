@@ -2931,7 +2931,7 @@ var yo = (s3) => {
 import os2 from "node:os";
 import path from "node:path";
 function userDataPaths(opts = {}) {
-  const root = opts.radHome ?? path.join(os2.homedir(), ".radorch");
+  const root = opts.radHome ?? path.join(os2.homedir(), ".radorc");
   return {
     root,
     installJson: path.join(root, "install.json"),
@@ -3004,7 +3004,7 @@ function installManifestFiles(manifest, pluginRoot2, opts = {}) {
     const dest = expand(entry.destinationPath, paths);
     const resolvedDest = path4.resolve(dest);
     if (resolvedDest !== resolvedRoot && !resolvedDest.startsWith(resolvedRoot + path4.sep)) {
-      throw new Error(`install: destination escapes ~/.radorch/: ${dest}`);
+      throw new Error(`install: destination escapes ~/.radorc/: ${dest}`);
     }
     if (entry.ownership === "user-config" && fs4.existsSync(resolvedDest)) continue;
     const src = path4.join(pluginRoot2, entry.sourcePath);
@@ -3134,7 +3134,7 @@ files may win at runtime; uninstalling the CLI plugin resolves the precedence.
 ` : "";
   stderr(
     `WARNING: rad-orchestration is already registered under ${partnerList} alongside copilot-vscode-plugin.
-All install-keys coexist in ~/.radorch/install.json so neither install clobbers the other's metadata,
+All install-keys coexist in ~/.radorc/install.json so neither install clobbers the other's metadata,
 but the standard-installer's ~/.copilot/ writes can shadow plugin-shipped agents and skills per
 VS Code's documented load order. The copilot-vscode-plugin ships correctly-shaped model identifiers
 for VS Code's resolver and is the recommended canonical channel for VS-Code-heavy users.
@@ -3265,7 +3265,7 @@ function cleanupLegacyMarker(radHome) {
   }
 }
 async function main() {
-  const radHome = process.env.RAD_HOME ?? path9.join(os3.homedir(), ".radorch");
+  const radHome = process.env.RAD_HOME ?? path9.join(os3.homedir(), ".radorc");
   try {
     const result = await runInstall({ pluginRoot: process.env.COPILOT_VSCODE_PLUGIN_ROOT, radHome });
     log(`install action=${result.action}`);

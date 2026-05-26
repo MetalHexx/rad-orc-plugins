@@ -2931,7 +2931,7 @@ var yo = (s3) => {
 import os2 from "node:os";
 import path from "node:path";
 function userDataPaths(opts = {}) {
-  const root = opts.radHome ?? path.join(os2.homedir(), ".radorch");
+  const root = opts.radHome ?? path.join(os2.homedir(), ".radorc");
   return {
     root,
     installJson: path.join(root, "install.json"),
@@ -3004,7 +3004,7 @@ function installManifestFiles(manifest, pluginRoot2, opts = {}) {
     const dest = expand(entry.destinationPath, paths);
     const resolvedDest = path4.resolve(dest);
     if (resolvedDest !== resolvedRoot && !resolvedDest.startsWith(resolvedRoot + path4.sep)) {
-      throw new Error(`install: destination escapes ~/.radorch/: ${dest}`);
+      throw new Error(`install: destination escapes ~/.radorc/: ${dest}`);
     }
     if (entry.ownership === "user-config" && fs4.existsSync(resolvedDest)) continue;
     const src = path4.join(pluginRoot2, entry.sourcePath);
@@ -3108,7 +3108,7 @@ function emitCoexistenceWarning(stderr, partnersPresent) {
   const partnerList = partnersPresent.join(" and ");
   stderr(
     `WARNING: A standard-installer ${partnerList} install of rad-orchestration is already registered
-alongside copilot-cli-plugin. All keys coexist in ~/.radorch/install.json so neither install
+alongside copilot-cli-plugin. All keys coexist in ~/.radorc/install.json so neither install
 clobbers the other's metadata, but the standard-installer's user-level files at ~/.copilot/
 will shadow plugin-shipped agents and skills per Copilot CLI's documented load order.
 Consider removing the standard-installer (${partnerList}) install if the plugin is the canonical channel.
@@ -3200,7 +3200,7 @@ function selfUninstall(root) {
   }
 }
 async function main() {
-  const radHome = process.env.RAD_HOME ?? path8.join(os3.homedir(), ".radorch");
+  const radHome = process.env.RAD_HOME ?? path8.join(os3.homedir(), ".radorc");
   try {
     const result = await runInstall({ pluginRoot: process.env.COPILOT_CLI_PLUGIN_ROOT, radHome });
     log(`install action=${result.action}`);

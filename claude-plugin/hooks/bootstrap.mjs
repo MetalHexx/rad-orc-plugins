@@ -2930,7 +2930,7 @@ var yo = (s3) => {
 import os2 from "node:os";
 import path from "node:path";
 function userDataPaths(opts = {}) {
-  const root = opts.radHome ?? path.join(os2.homedir(), ".radorch");
+  const root = opts.radHome ?? path.join(os2.homedir(), ".radorc");
   return {
     root,
     installJson: path.join(root, "install.json"),
@@ -3003,7 +3003,7 @@ function installManifestFiles(manifest, pluginRoot, opts = {}) {
     const dest = path4.resolve(expand(entry.destinationPath, paths));
     const rel = path4.relative(rootResolved, dest);
     if (rel.startsWith("..") || path4.isAbsolute(rel)) {
-      throw new Error(`install: destination escapes ~/.radorch/: ${dest}`);
+      throw new Error(`install: destination escapes ~/.radorc/: ${dest}`);
     }
     const src = path4.join(pluginRoot, entry.sourcePath);
     fs4.mkdirSync(path4.dirname(dest), { recursive: true });
@@ -3099,7 +3099,7 @@ function cmpSemver(a, b2) {
 function emitCoexistenceWarning(stderr, partner) {
   stderr(
     `WARNING: A ${partner} install of rad-orchestration is already registered alongside claude-plugin.
-Both keys coexist in ~/.radorch/install.json so neither install clobbers the other's metadata,
+Both keys coexist in ~/.radorc/install.json so neither install clobbers the other's metadata,
 but the plugin install is now the recommended channel. Consider removing the ${partner} install once
 the plugin is verified working.
 `
