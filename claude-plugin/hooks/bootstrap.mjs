@@ -3010,6 +3010,7 @@ function installManifestFiles(manifest, pluginRoot, opts = {}) {
     if (rel.startsWith("..") || path4.isAbsolute(rel)) {
       throw new Error(`install: destination escapes ~/.radorc/: ${dest}`);
     }
+    if (entry.ownership === "user-config" && fs4.existsSync(dest)) continue;
     const src = path4.join(pluginRoot, entry.sourcePath);
     fs4.mkdirSync(path4.dirname(dest), { recursive: true });
     fs4.copyFileSync(src, dest);
@@ -3029,6 +3030,15 @@ function removeManifestFiles(manifest, opts = {}) {
     const rel = path5.relative(parent, child);
     return rel !== "" && !rel.startsWith("..") && !path5.isAbsolute(rel);
   };
+  const customSegment = `${path5.sep}action-events${path5.sep}custom${path5.sep}`;
+  for (const entry of manifest.files ?? []) {
+    const dest = path5.resolve(entry.destinationPath.replaceAll("${RAD_HOME}", paths.root));
+    if (dest.includes(customSegment)) {
+      throw new Error(
+        `uninstall safety: manifest entry '${entry.sourcePath ?? entry.destinationPath}' targets an action-events/custom/ payload. Refusing to proceed.`
+      );
+    }
+  }
   const touched = /* @__PURE__ */ new Set();
   for (const entry of manifest.files) {
     if (entry.ownership === "user-config") continue;
@@ -3116,7 +3126,7 @@ async function detectAndStopUi(opts = {}) {
   } catch {
     return { wasRunning: false, stopped: false, status: null, reason: null };
   }
-  if (!entry || typeof entry.pid !== "number") {
+  if (!entry || !Number.isInteger(entry.pid) || entry.pid <= 0) {
     return { wasRunning: false, stopped: false, status: null, reason: null };
   }
   if (!isAlive(entry.pid)) {

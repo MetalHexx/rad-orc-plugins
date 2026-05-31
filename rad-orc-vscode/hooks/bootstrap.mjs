@@ -3027,6 +3027,15 @@ function removeManifestFiles(manifest, opts = {}) {
   const paths = userDataPaths(opts);
   const resolvedRoot = path5.resolve(paths.root);
   const resolvedProjects = path5.resolve(paths.projects);
+  const customSegment = `${path5.sep}action-events${path5.sep}custom${path5.sep}`;
+  for (const entry of manifest.files ?? []) {
+    const dest = path5.resolve(entry.destinationPath.replaceAll("${RAD_HOME}", paths.root));
+    if (dest.includes(customSegment)) {
+      throw new Error(
+        `uninstall safety: manifest entry '${entry.sourcePath ?? entry.destinationPath}' targets an action-events/custom/ payload. Refusing to proceed.`
+      );
+    }
+  }
   const touched = /* @__PURE__ */ new Set();
   for (const entry of manifest.files) {
     if (entry.ownership === "user-config") continue;
@@ -3113,7 +3122,7 @@ async function detectAndStopUi(opts = {}) {
   } catch {
     return { wasRunning: false, stopped: false, status: null, reason: null };
   }
-  if (!entry || typeof entry.pid !== "number") {
+  if (!entry || !Number.isInteger(entry.pid) || entry.pid <= 0) {
     return { wasRunning: false, stopped: false, status: null, reason: null };
   }
   if (!isAlive(entry.pid)) {
@@ -3264,6 +3273,7 @@ async function runInstall(opts) {
         installJsonUpserted = true;
       }
       appendInstallLog(paths.installLog, { action: "noop", deliveringVersion, installedVersionBefore });
+      cleanupStagingDir(opts.pluginRoot);
       return { action: "noop", deliveringVersion, installedVersionBefore, uiStopped: false, installJsonUpserted };
     }
     if (prior && cmpSemver(deliveringVersion, installedVersionBefore) < 0 && !opts.force) {
@@ -3276,6 +3286,7 @@ async function runInstall(opts) {
         installJsonUpserted = true;
       }
       appendInstallLog(paths.installLog, { action: "downgrade-noop", deliveringVersion, installedVersionBefore });
+      cleanupStagingDir(opts.pluginRoot);
       return { action: "downgrade-noop", deliveringVersion, installedVersionBefore, uiStopped: false, installJsonUpserted };
     }
     const ui2 = await detect({ radHome: opts.radHome });
